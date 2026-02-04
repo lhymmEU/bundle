@@ -32,6 +32,7 @@ import {
   Share2,
   Check,
 } from 'lucide-react';
+import { BundleImporter } from './BundleImporter';
 
 interface BundleFormProps {
   open: boolean;
@@ -344,6 +345,16 @@ export function BundleCreator({ selectedLinkIds = [], onClearSelection }: Bundle
           </Button>
         </div>
       </div>
+
+      {/* Import Bundle Section */}
+      <Card>
+        <CardContent className="pt-4">
+          <p className="text-sm text-muted-foreground mb-3">
+            Import a shared bundle by pasting the share URL or code below:
+          </p>
+          <BundleImporter />
+        </CardContent>
+      </Card>
 
       {state.bundles.length === 0 ? (
         <Card className="border-dashed">

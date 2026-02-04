@@ -3,6 +3,7 @@ export * from './LinkForm';
 export * from './LinkOrganizer';
 export * from './CategoryManager';
 export * from './BundleCreator';
+export * from './BundleImporter';
 export * from './SocialMediaIcons';
 export * from './SocialMediaImporter';
 export * from './SocialGroupCard';
