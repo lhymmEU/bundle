@@ -37,7 +37,9 @@ export function LinkForm({ open, onOpenChange, editLink }: LinkFormProps) {
   const [categoryId, setCategoryId] = useState('');
   const [isHighlighted, setIsHighlighted] = useState(false);
 
+  // Reset form state when editLink or dialog open state changes
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (editLink) {
       setTitle(editLink.title);
       setUrl(editLink.url);
@@ -51,6 +53,7 @@ export function LinkForm({ open, onOpenChange, editLink }: LinkFormProps) {
       setCategoryId(state.categories[0]?.id || '');
       setIsHighlighted(false);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [editLink, state.categories, open]);
 
   const handleSubmit = (e: React.FormEvent) => {

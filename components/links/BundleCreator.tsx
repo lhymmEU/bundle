@@ -30,9 +30,7 @@ import {
   Pencil,
   Trash2,
   Share2,
-  Copy,
   Check,
-  ExternalLink,
 } from 'lucide-react';
 
 interface BundleFormProps {

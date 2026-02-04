@@ -3,15 +3,15 @@
 import { useState, useMemo } from 'react';
 import { Link } from '@/types';
 import { useApp } from '@/context/AppContext';
-import { LinkCard } from './LinkCard';
 import { LinkForm } from './LinkForm';
 import { CategoryManager } from './CategoryManager';
 import { BundleCreator } from './BundleCreator';
+import { SocialMediaImporter, SocialMediaImportButton } from './SocialMediaImporter';
+import { SocialGroupCard } from './SocialGroupCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import {
   Select,
@@ -28,11 +28,29 @@ import {
   CheckSquare,
   Square,
   Filter,
+  Users,
 } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { DraggableLinkTable } from './DraggableLinkTable';
 
 export function LinkOrganizer() {
-  const { state, isLoaded } = useApp();
+  const { state, isLoaded, reorderLinks } = useApp();
   const [linkFormOpen, setLinkFormOpen] = useState(false);
+  const [socialMediaImporterOpen, setSocialMediaImporterOpen] = useState(false);
   const [editLink, setEditLink] = useState<Link | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -40,8 +58,39 @@ export function LinkOrganizer() {
   const [selectedLinkIds, setSelectedLinkIds] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
-  const filteredLinks = useMemo(() => {
-    return state.links.filter((link) => {
+  // Drag and drop sensors (used only for social links now)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle reorder for regular links (used by table)
+  const handleRegularLinksReorder = (linkIds: string[]) => {
+    reorderLinks(linkIds);
+  };
+
+  // Separate regular links from social group links
+  const regularLinks = useMemo(() => {
+    return state.links
+      .filter((link) => !link.socialMediaType)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [state.links]);
+
+  const socialLinks = useMemo(() => {
+    return state.links
+      .filter((link) => !!link.socialMediaType)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }, [state.links]);
+
+  // Filtered regular links
+  const filteredRegularLinks = useMemo(() => {
+    return regularLinks.filter((link) => {
       const matchesSearch =
         link.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         link.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -51,15 +100,37 @@ export function LinkOrganizer() {
       const matchesHighlight = !showHighlightedOnly || link.isHighlighted;
       return matchesSearch && matchesCategory && matchesHighlight;
     });
-  }, [state.links, searchQuery, selectedCategory, showHighlightedOnly]);
+  }, [regularLinks, searchQuery, selectedCategory, showHighlightedOnly]);
+
+  // Filtered social links
+  const filteredSocialLinks = useMemo(() => {
+    return socialLinks.filter((link) => {
+      const matchesSearch =
+        link.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        link.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        link.url.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory =
+        selectedCategory === 'all' || link.categoryId === selectedCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [socialLinks, searchQuery, selectedCategory]);
 
   const handleEditLink = (link: Link) => {
     setEditLink(link);
-    setLinkFormOpen(true);
+    if (link.socialMediaType) {
+      setSocialMediaImporterOpen(true);
+    } else {
+      setLinkFormOpen(true);
+    }
   };
 
   const handleCloseForm = (open: boolean) => {
     setLinkFormOpen(open);
+    if (!open) setEditLink(null);
+  };
+
+  const handleCloseSocialImporter = (open: boolean) => {
+    setSocialMediaImporterOpen(open);
     if (!open) setEditLink(null);
   };
 
@@ -70,10 +141,11 @@ export function LinkOrganizer() {
   };
 
   const handleSelectAll = () => {
-    if (selectedLinkIds.length === filteredLinks.length) {
+    const allFilteredIds = [...filteredRegularLinks, ...filteredSocialLinks].map((l) => l.id);
+    if (selectedLinkIds.length === allFilteredIds.length) {
       setSelectedLinkIds([]);
     } else {
-      setSelectedLinkIds(filteredLinks.map((l) => l.id));
+      setSelectedLinkIds(allFilteredIds);
     }
   };
 
@@ -87,6 +159,17 @@ export function LinkOrganizer() {
   const clearSelection = () => {
     setSelectedLinkIds([]);
     setIsSelectionMode(false);
+  };
+
+  // Handle drag end for social links
+  const handleSocialLinkDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = filteredSocialLinks.findIndex((l) => l.id === active.id);
+      const newIndex = filteredSocialLinks.findIndex((l) => l.id === over.id);
+      const reorderedLinks = arrayMove(filteredSocialLinks, oldIndex, newIndex);
+      reorderLinks(reorderedLinks.map((l) => l.id));
+    }
   };
 
   if (!isLoaded) {
@@ -107,10 +190,13 @@ export function LinkOrganizer() {
             Manage and organize your blockchain ecosystem links
           </p>
         </div>
-        <Button onClick={() => setLinkFormOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Link
-        </Button>
+        <div className="flex gap-2">
+          <SocialMediaImportButton onClick={() => setSocialMediaImporterOpen(true)} />
+          <Button onClick={() => setLinkFormOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Link
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="links" className="space-y-4">
@@ -118,6 +204,20 @@ export function LinkOrganizer() {
           <TabsTrigger value="links" className="gap-2">
             <Link2 className="h-4 w-4" />
             Links
+            {regularLinks.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                {regularLinks.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="social" className="gap-2">
+            <Users className="h-4 w-4" />
+            Social Groups
+            {socialLinks.length > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5">
+                {socialLinks.length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="bundles" className="gap-2">
             <Star className="h-4 w-4" />
@@ -193,7 +293,7 @@ export function LinkOrganizer() {
           {isSelectionMode && (
             <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
               <Button variant="ghost" size="sm" onClick={handleSelectAll}>
-                {selectedLinkIds.length === filteredLinks.length
+                {selectedLinkIds.length === filteredRegularLinks.length
                   ? 'Deselect All'
                   : 'Select All'}
               </Button>
@@ -208,17 +308,17 @@ export function LinkOrganizer() {
             </div>
           )}
 
-          {/* Links grid */}
-          {filteredLinks.length === 0 ? (
+          {/* Links table with drag and drop */}
+          {filteredRegularLinks.length === 0 ? (
             <div className="text-center py-12">
               <Link2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-semibold text-lg mb-1">No links found</h3>
               <p className="text-muted-foreground">
-                {state.links.length === 0
+                {regularLinks.length === 0
                   ? 'Start by adding your first link.'
                   : 'Try adjusting your filters.'}
               </p>
-              {state.links.length === 0 && (
+              {regularLinks.length === 0 && (
                 <Button className="mt-4" onClick={() => setLinkFormOpen(true)}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Your First Link
@@ -226,18 +326,73 @@ export function LinkOrganizer() {
               )}
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredLinks.map((link) => (
-                <LinkCard
-                  key={link.id}
-                  link={link}
-                  onEdit={handleEditLink}
-                  isSelected={selectedLinkIds.includes(link.id)}
-                  onSelect={handleSelectLink}
-                  showSelect={isSelectionMode}
-                />
-              ))}
+            <DraggableLinkTable
+              links={filteredRegularLinks}
+              onEdit={handleEditLink}
+              isSelectionMode={isSelectionMode}
+              selectedLinkIds={selectedLinkIds}
+              onSelect={handleSelectLink}
+              onReorder={handleRegularLinksReorder}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="social" className="space-y-4">
+          {/* Social Groups Search */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search social groups..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
             </div>
+            <Button onClick={() => setSocialMediaImporterOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Social Group
+            </Button>
+          </div>
+
+          {/* Social Groups list with drag and drop */}
+          {filteredSocialLinks.length === 0 ? (
+            <div className="text-center py-12">
+              <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="font-semibold text-lg mb-1">No social groups found</h3>
+              <p className="text-muted-foreground">
+                {socialLinks.length === 0
+                  ? 'Add your Telegram, Discord, or X communities.'
+                  : 'Try adjusting your search.'}
+              </p>
+              {socialLinks.length === 0 && (
+                <Button className="mt-4" onClick={() => setSocialMediaImporterOpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Your First Social Group
+                </Button>
+              )}
+            </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleSocialLinkDragEnd}
+            >
+              <SortableContext
+                items={filteredSocialLinks.map((l) => l.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2 max-w-2xl">
+                  {filteredSocialLinks.map((link) => (
+                    <SocialGroupCard
+                      key={link.id}
+                      link={link}
+                      onEdit={handleEditLink}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
         </TabsContent>
 
@@ -252,6 +407,12 @@ export function LinkOrganizer() {
       <LinkForm
         open={linkFormOpen}
         onOpenChange={handleCloseForm}
+        editLink={editLink}
+      />
+
+      <SocialMediaImporter
+        open={socialMediaImporterOpen}
+        onOpenChange={handleCloseSocialImporter}
         editLink={editLink}
       />
     </div>

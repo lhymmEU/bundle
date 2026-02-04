@@ -7,7 +7,6 @@ import { ActivityForm } from './ActivityForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Calendar } from '@/components/ui/calendar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   DropdownMenu,
@@ -266,9 +265,6 @@ export function Schedule() {
     setFormOpen(true);
   };
 
-  const getDatesWithActivities = () => {
-    return Object.keys(activitiesByDate).map((dateStr) => new Date(dateStr));
-  };
 
   // Generate calendar days for grid view
   const calendarDays = useMemo(() => {

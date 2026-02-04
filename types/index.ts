@@ -1,5 +1,7 @@
 // Link Organizer Types
 
+export type SocialMediaType = 'telegram' | 'discord' | 'x' | null;
+
 export interface Link {
   id: string;
   title: string;
@@ -7,6 +9,8 @@ export interface Link {
   description: string;
   categoryId: string;
   isHighlighted: boolean;
+  socialMediaType?: SocialMediaType;
+  order: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -50,6 +54,8 @@ export interface SharedLink {
   title: string;
   url: string;
   description: string;
+  socialMediaType?: SocialMediaType;
+  order?: number;
 }
 
 export interface SharedBundle {

@@ -19,10 +19,13 @@ import {
   Pencil,
   Trash2,
   Copy,
+  GripVertical,
 } from 'lucide-react';
 import { SocialMediaIcon, SOCIAL_MEDIA_CONFIG } from './SocialMediaIcons';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
-interface LinkCardProps {
+interface DraggableLinkCardProps {
   link: Link;
   onEdit: (link: Link) => void;
   isSelected?: boolean;
@@ -30,9 +33,24 @@ interface LinkCardProps {
   showSelect?: boolean;
 }
 
-export function LinkCard({ link, onEdit, isSelected, onSelect, showSelect }: LinkCardProps) {
+export function DraggableLinkCard({ link, onEdit, isSelected, onSelect, showSelect }: DraggableLinkCardProps) {
   const { state, toggleHighlight, deleteLink } = useApp();
-  
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: link.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   const category = state.categories.find((c) => c.id === link.categoryId);
 
   const handleCopyUrl = async () => {
@@ -45,12 +63,23 @@ export function LinkCard({ link, onEdit, isSelected, onSelect, showSelect }: Lin
 
   return (
     <Card
+      ref={setNodeRef}
+      style={style}
       className={`group relative transition-all hover:shadow-md ${
         link.isHighlighted ? 'ring-2 ring-yellow-400 bg-yellow-50/50 dark:bg-yellow-900/10' : ''
-      } ${isSelected ? 'ring-2 ring-primary' : ''}`}
+      } ${isSelected ? 'ring-2 ring-primary' : ''} ${isDragging ? 'shadow-lg z-50' : ''}`}
     >
+      {/* Drag Handle */}
+      <button
+        {...attributes}
+        {...listeners}
+        className="absolute top-3 right-12 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity touch-none z-10"
+      >
+        <GripVertical className="h-5 w-5" />
+      </button>
+
       {showSelect && (
-        <div className="absolute top-3 left-3">
+        <div className="absolute top-3 left-3 z-10">
           <input
             type="checkbox"
             checked={isSelected}

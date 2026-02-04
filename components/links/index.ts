@@ -3,3 +3,8 @@ export * from './LinkForm';
 export * from './LinkOrganizer';
 export * from './CategoryManager';
 export * from './BundleCreator';
+export * from './SocialMediaIcons';
+export * from './SocialMediaImporter';
+export * from './SocialGroupCard';
+export * from './DraggableLinkCard';
+export * from './DraggableLinkTable';

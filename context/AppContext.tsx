@@ -22,10 +22,11 @@ interface AppContextType {
   isLoaded: boolean;
   
   // Link actions
-  addLink: (link: Omit<Link, 'id' | 'createdAt' | 'updatedAt'>) => void;
+  addLink: (link: Omit<Link, 'id' | 'createdAt' | 'updatedAt' | 'order'>) => void;
   updateLink: (id: string, updates: Partial<Link>) => void;
   deleteLink: (id: string) => void;
   toggleHighlight: (id: string) => void;
+  reorderLinks: (linkIds: string[]) => void;
   
   // Category actions
   addCategory: (category: Omit<Category, 'id' | 'createdAt'>) => void;
@@ -52,17 +53,13 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<AppState>(getInitialState());
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load state on mount
-  useEffect(() => {
+  // Use lazy initialization to load state from localStorage
+  const [state, setState] = useState<AppState>(() => {
+    if (typeof window === 'undefined') return getInitialState();
     const savedState = loadState();
-    if (savedState) {
-      setState(savedState);
-    }
-    setIsLoaded(true);
-  }, []);
+    return savedState || getInitialState();
+  });
+  const [isLoaded] = useState(true);
 
   // Save state on changes
   useEffect(() => {
@@ -72,15 +69,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state, isLoaded]);
 
   // Link actions
-  const addLink = useCallback((link: Omit<Link, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addLink = useCallback((link: Omit<Link, 'id' | 'createdAt' | 'updatedAt' | 'order'>) => {
     const now = getTimestamp();
-    const newLink: Link = {
-      ...link,
-      id: generateId(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    setState((prev) => ({ ...prev, links: [...prev.links, newLink] }));
+    setState((prev) => {
+      // Calculate the next order based on whether it's a social link or regular link
+      const isSocialLink = !!link.socialMediaType;
+      const relevantLinks = prev.links.filter(l => 
+        isSocialLink ? !!l.socialMediaType : !l.socialMediaType
+      );
+      const maxOrder = relevantLinks.length > 0 
+        ? Math.max(...relevantLinks.map(l => l.order ?? 0)) 
+        : -1;
+      
+      const newLink: Link = {
+        ...link,
+        id: generateId(),
+        order: maxOrder + 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+      return { ...prev, links: [...prev.links, newLink] };
+    });
   }, []);
 
   const updateLink = useCallback((id: string, updates: Partial<Link>) => {
@@ -115,6 +124,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         link.id === id ? { ...link, isHighlighted: !link.isHighlighted, updatedAt: getTimestamp() } : link
       ),
     }));
+  }, []);
+
+  const reorderLinks = useCallback((linkIds: string[]) => {
+    setState((prev) => {
+      const now = getTimestamp();
+      const updatedLinks = prev.links.map((link) => {
+        const newOrder = linkIds.indexOf(link.id);
+        if (newOrder !== -1 && newOrder !== link.order) {
+          return { ...link, order: newOrder, updatedAt: now };
+        }
+        return link;
+      });
+      return { ...prev, links: updatedLinks };
+    });
   }, []);
 
   // Category actions
@@ -184,7 +207,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const bundle = state.bundles.find((b) => b.id === id);
     if (!bundle) return null;
     
-    const links = state.links.filter((l) => bundle.linkIds.includes(l.id));
+    const links = state.links
+      .filter((l) => bundle.linkIds.includes(l.id))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
     const shareData = {
       name: bundle.name,
       description: bundle.description,
@@ -192,6 +217,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         title: l.title,
         url: l.url,
         description: l.description,
+        socialMediaType: l.socialMediaType,
+        order: l.order,
       })),
     };
     
@@ -262,6 +289,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateLink,
     deleteLink,
     toggleHighlight,
+    reorderLinks,
     addCategory,
     updateCategory,
     deleteCategory,

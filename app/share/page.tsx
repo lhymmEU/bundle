@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   Link as LinkIcon,
 } from 'lucide-react';
+import { SocialMediaIcon, SOCIAL_MEDIA_CONFIG } from '@/components/links/SocialMediaIcons';
 
 function SharePageContent() {
   const searchParams = useSearchParams();
@@ -55,14 +56,19 @@ function SharePageContent() {
       return;
     }
 
-    // Import all links into the user's collection
-    sharedBundle.links.forEach((link) => {
+    // Import all links into the user's collection, sorted by order if available
+    const sortedLinks = [...sharedBundle.links].sort((a, b) => 
+      (a.order ?? 0) - (b.order ?? 0)
+    );
+    
+    sortedLinks.forEach((link) => {
       addLink({
         title: link.title,
         url: link.url,
         description: link.description,
         categoryId,
         isHighlighted: false,
+        socialMediaType: link.socialMediaType || null,
       });
     });
     
@@ -134,12 +140,21 @@ function SharePageContent() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="border rounded-lg divide-y max-h-[400px] overflow-y-auto">
-            {sharedBundle?.links.map((link, index) => (
+            {sharedBundle?.links
+              .slice()
+              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+              .map((link, index) => (
               <div key={index} className="p-3 hover:bg-muted/50 transition-colors">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      {link.socialMediaType ? (
+                        <span style={{ color: SOCIAL_MEDIA_CONFIG[link.socialMediaType]?.color }}>
+                          <SocialMediaIcon type={link.socialMediaType} size={16} />
+                        </span>
+                      ) : (
+                        <LinkIcon className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      )}
                       <p className="font-medium truncate">{link.title}</p>
                     </div>
                     <p className="text-sm text-muted-foreground truncate mt-1">

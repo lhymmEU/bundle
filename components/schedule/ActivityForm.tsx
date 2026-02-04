@@ -58,7 +58,9 @@ export function ActivityForm({
   const [color, setColor] = useState(ACTIVITY_COLORS[0]);
   const [selectedLinkIds, setSelectedLinkIds] = useState<string[]>([]);
 
+  // Reset form state when editActivity or dialog open state changes
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (editActivity) {
       setTitle(editActivity.title);
       setDescription(editActivity.description);
@@ -74,6 +76,7 @@ export function ActivityForm({
       setColor(ACTIVITY_COLORS[0]);
       setSelectedLinkIds([]);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [editActivity, defaultDate, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
