@@ -1,9 +1,9 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { Link2, CalendarDays, Blocks } from 'lucide-react';
+import { Link2, CalendarDays, Blocks, Settings } from 'lucide-react';
 
-type View = 'links' | 'schedule';
+type View = 'links' | 'schedule' | 'settings';
 
 interface MobileNavProps {
   currentView: View;
@@ -13,6 +13,7 @@ interface MobileNavProps {
 const navigation = [
   { id: 'links' as View, label: 'Links', icon: Link2 },
   { id: 'schedule' as View, label: 'Schedule', icon: CalendarDays },
+  { id: 'settings' as View, label: 'Settings', icon: Settings },
 ];
 
 export function MobileNav({ currentView, onViewChange }: MobileNavProps) {

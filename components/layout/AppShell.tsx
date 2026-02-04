@@ -5,9 +5,10 @@ import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
 import { LinkOrganizer } from '@/components/links/LinkOrganizer';
 import { Schedule } from '@/components/schedule/Schedule';
+import { DataManagement } from '@/components/settings/DataManagement';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-type View = 'links' | 'schedule';
+type View = 'links' | 'schedule' | 'settings';
 
 export function AppShell() {
   const [currentView, setCurrentView] = useState<View>('links');
@@ -28,6 +29,7 @@ export function AppShell() {
           <div className="container max-w-6xl mx-auto p-6">
             {currentView === 'links' && <LinkOrganizer />}
             {currentView === 'schedule' && <Schedule />}
+            {currentView === 'settings' && <DataManagement />}
           </div>
         </ScrollArea>
       </main>

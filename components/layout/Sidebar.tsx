@@ -13,13 +13,13 @@ import {
 import {
   Link2,
   CalendarDays,
-  Package,
   Menu,
   X,
   Blocks,
+  Settings,
 } from 'lucide-react';
 
-type View = 'links' | 'schedule';
+type View = 'links' | 'schedule' | 'settings';
 
 interface SidebarProps {
   currentView: View;
@@ -29,6 +29,7 @@ interface SidebarProps {
 const navigation = [
   { id: 'links' as View, label: 'Links', icon: Link2 },
   { id: 'schedule' as View, label: 'Schedule', icon: CalendarDays },
+  { id: 'settings' as View, label: 'Settings', icon: Settings },
 ];
 
 export function Sidebar({ currentView, onViewChange }: SidebarProps) {

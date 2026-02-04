@@ -43,6 +43,10 @@ interface AppContextType {
   updateActivity: (id: string, updates: Partial<ScheduledActivity>) => void;
   deleteActivity: (id: string) => void;
   toggleActivityComplete: (id: string) => void;
+  
+  // Data management actions
+  importData: (data: AppState) => void;
+  clearAllData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -242,6 +246,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  // Data management actions
+  const importData = useCallback((data: AppState) => {
+    setState(data);
+  }, []);
+
+  const clearAllData = useCallback(() => {
+    setState(getInitialState());
+  }, []);
+
   const value: AppContextType = {
     state,
     isLoaded,
@@ -260,6 +273,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     updateActivity,
     deleteActivity,
     toggleActivityComplete,
+    importData,
+    clearAllData,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
