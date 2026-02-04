@@ -195,7 +195,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       })),
     };
     
-    const code = generateShareCode({ name: bundle.name, linkIds: bundle.linkIds });
+    const code = generateShareCode(shareData);
     setState((prev) => ({
       ...prev,
       bundles: prev.bundles.map((b) =>

@@ -81,8 +81,8 @@ function BundleForm({ open, onOpenChange, editBundle, selectedLinkIds = [] }: Bu
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <form onSubmit={handleSubmit}>
+      <DialogContent className="sm:max-w-[600px] max-w-[calc(100vw-2rem)] overflow-hidden">
+        <form onSubmit={handleSubmit} className="w-full overflow-hidden">
           <DialogHeader>
             <DialogTitle>
               {editBundle ? 'Edit Bundle' : 'Create Bundle'}
@@ -94,8 +94,8 @@ function BundleForm({ open, onOpenChange, editBundle, selectedLinkIds = [] }: Bu
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
+          <div className="grid gap-4 py-4 w-full overflow-hidden">
+            <div className="grid gap-2 w-full overflow-hidden">
               <label htmlFor="bundle-name" className="text-sm font-medium">
                 Bundle Name
               </label>
@@ -121,17 +121,17 @@ function BundleForm({ open, onOpenChange, editBundle, selectedLinkIds = [] }: Bu
               />
             </div>
             
-            <div className="grid gap-2">
+            <div className="grid gap-2 w-full overflow-hidden">
               <label className="text-sm font-medium">
                 Select Links ({linkIds.length} selected)
               </label>
-              <ScrollArea className="h-[200px] border rounded-md p-2">
+              <ScrollArea className="h-[200px] w-full border rounded-md p-2">
                 {state.links.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
                     No links available. Add some links first.
                   </p>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-2 overflow-hidden">
                     {state.links.map((link) => {
                       const category = state.categories.find(
                         (c) => c.id === link.categoryId
@@ -142,7 +142,7 @@ function BundleForm({ open, onOpenChange, editBundle, selectedLinkIds = [] }: Bu
                         <div
                           key={link.id}
                           onClick={() => toggleLink(link.id)}
-                          className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors ${
+                          className={`flex items-center gap-3 p-2 rounded-md cursor-pointer transition-colors overflow-hidden ${
                             isSelected
                               ? 'bg-primary/10 border border-primary'
                               : 'hover:bg-muted border border-transparent'
@@ -157,7 +157,7 @@ function BundleForm({ open, onOpenChange, editBundle, selectedLinkIds = [] }: Bu
                           >
                             {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                           </div>
-                          <div className="flex-1 min-w-0">
+                          <div className="flex-1 min-w-0 overflow-hidden">
                             <p className="text-sm font-medium truncate">{link.title}</p>
                             <p className="text-xs text-muted-foreground truncate">
                               {link.url}

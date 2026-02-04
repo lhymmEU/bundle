@@ -44,6 +44,20 @@ export interface ScheduledActivity {
   updatedAt: string;
 }
 
+// Sharing Types
+
+export interface SharedLink {
+  title: string;
+  url: string;
+  description: string;
+}
+
+export interface SharedBundle {
+  name: string;
+  description: string;
+  links: SharedLink[];
+}
+
 // Storage Types
 
 export interface AppState {

@@ -1,4 +1,4 @@
-import { AppState, Category, DEFAULT_CATEGORIES } from '@/types';
+import { AppState, Category, DEFAULT_CATEGORIES, SharedBundle } from '@/types';
 
 const STORAGE_KEY = 'bundle-app-state';
 
@@ -55,17 +55,22 @@ export function saveState(state: AppState): void {
   }
 }
 
-// Generate share code for bundles
-export function generateShareCode(bundle: { name: string; linkIds: string[] }): string {
+// Generate share code for bundles (encodes full bundle data including links)
+export function generateShareCode(bundle: SharedBundle): string {
   const data = JSON.stringify(bundle);
   return btoa(encodeURIComponent(data));
 }
 
 // Decode share code
-export function decodeShareCode(code: string): { name: string; linkIds: string[] } | null {
+export function decodeShareCode(code: string): SharedBundle | null {
   try {
     const data = decodeURIComponent(atob(code));
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    // Validate the parsed data has required fields
+    if (parsed && typeof parsed.name === 'string' && Array.isArray(parsed.links)) {
+      return parsed as SharedBundle;
+    }
+    return null;
   } catch {
     return null;
   }
